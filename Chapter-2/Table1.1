@@ -16,9 +16,17 @@ if (any(installed_packages == FALSE)) {
 # Packages loading
 invisible(lapply(packages, library, character.only = TRUE))
 
+
+# Code starts here-------------
 df.spam = mlr::spam.task$env$data
 names(df.spam)[52] = "!" # change column name from "charExclamation" to "!"
+
+# Column wise mean of spam and email
 spam = colMeans(df.spam[df.spam$type == "spam", -58])
 email = colMeans(df.spam[df.spam$type == "nonspam", -58])
+
+# Largest difference in means of spam and email
 largest.diff = sort(abs(spam - email), decreasing = TRUE)[4:14]
+
+# Creates a table 
 knitr::kable(rbind(spam, email)[ ,names(largest.diff)], digits = 2)
