@@ -1,0 +1,24 @@
+
+# Package names
+packages <-  c("knitr", "ggplot2", "mlr", "directlabels", "ggforce", "gridExtra", "mvtnorm", "reshape2", "scales", "leaps")
+#library("mlr") # machine learning in R
+#library("directlabels") # automatic label positioning in ggplot
+#library("ggforce") # drawing circles in ggplot
+#library("gridExtra") # arrange multiple plots
+#library("leaps") # Regression Subset Selection
+
+# Install packages not yet installed
+installed_packages <- packages %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {
+  install.packages(packages[!installed_packages], repos = "http://cran.us.r-project.org")
+}
+
+# Packages loading
+invisible(lapply(packages, library, character.only = TRUE))
+
+df.spam = mlr::spam.task$env$data
+names(df.spam)[52] = "!" # change column name from "charExclamation" to "!"
+spam = colMeans(df.spam[df.spam$type == "spam", -58])
+email = colMeans(df.spam[df.spam$type == "nonspam", -58])
+largest.diff = sort(abs(spam - email), decreasing = TRUE)[4:14]
+knitr::kable(rbind(spam, email)[ ,names(largest.diff)], digits = 2)
