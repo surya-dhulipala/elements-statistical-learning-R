@@ -1,0 +1,40 @@
+---
+title: "Figure1_1"
+author: "Surya Dhulipala"
+date: "3/4/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+setwd("~/Desktop/ESL_Codes_Surya_R/Chapter_1")
+
+# Package names
+packages <-  c("knitr", "ggplot2", "mlr", "directlabels", "ggforce", "gridExtra", "mvtnorm", "reshape2", "scales", "leaps")
+#library("mlr") # machine learning in R
+#library("directlabels") # automatic label positioning in ggplot
+#library("ggforce") # drawing circles in ggplot
+#library("gridExtra") # arrange multiple plots
+#library("leaps") # Regression Subset Selection
+
+# Install packages not yet installed
+installed_packages <- packages %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {
+  install.packages(packages[!installed_packages], repos = "http://cran.us.r-project.org")
+}
+
+# Packages loading
+invisible(lapply(packages, library, character.only = TRUE))
+
+
+library(ElemStatLearn)
+
+```
+
+```{r}
+
+df.prostate = ElemStatLearn::prostate
+
+pairs(df.prostate[, c("lpsa", "lcavol", "lweight", "age", "lbph", "svi", "lcp", "gleason", "pgg45")],
+      col = "blueviolet", cex = .5, cex.axis = .5)
+```
