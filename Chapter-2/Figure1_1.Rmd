@@ -7,7 +7,6 @@ output: html_document
 
 ```{r setup, include=FALSE}
 
-setwd("~/Desktop/ESL_Codes_Surya_R/Chapter_1")
 
 # Package names
 packages <-  c("knitr", "ggplot2", "mlr", "directlabels", "ggforce", "gridExtra", "mvtnorm", "reshape2", "scales", "leaps")
@@ -26,7 +25,7 @@ if (any(installed_packages == FALSE)) {
 # Packages loading
 invisible(lapply(packages, library, character.only = TRUE))
 
-
+# The following package needs to be loaded from archived CRAN sources: https://cran.r-project.org/src/contrib/Archive/ElemStatLearn/
 library(ElemStatLearn)
 
 ```
