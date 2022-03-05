@@ -1,0 +1,182 @@
+---
+title: "Overview of Supervised Learning"
+author: "Surya Dhulipala"
+date: "3/4/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+setwd("~/Desktop/ESL_Codes_Surya_R/Chapter_2")
+
+# Package names
+packages <-  c("knitr", "ggplot2", "mlr", "directlabels", "ggforce", "gridExtra", "mvtnorm", "reshape2", "scales", "leaps")
+#library("mlr") # machine learning in R
+#library("directlabels") # automatic label positioning in ggplot
+#library("ggforce") # drawing circles in ggplot
+#library("gridExtra") # arrange multiple plots
+#library("leaps") # Regression Subset Selection
+
+# Install packages not yet installed
+installed_packages <- packages %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {
+  install.packages(packages[!installed_packages], repos = "http://cran.us.r-project.org")
+}
+
+# Packages loading
+invisible(lapply(packages, library, character.only = TRUE))
+
+
+# ElemStatLearn needs to be loaded from R Cran Archives
+library(ElemStatLearn)
+
+
+```
+
+
+```{r setup, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      cache = TRUE,
+                      cache.path = "cache/chapter02/",
+                      message = FALSE,
+                      fig.path = "figures/")
+set.seed(123)
+theme_set(theme_light())
+```
+
+
+# Linear Model
+
+The data is available from the ElemStatLearn package. We start by creating an MLR task and train a linear model to predict y.
+
+```{r train linear model}
+
+# Read the mixture example dataset
+me = ElemStatLearn::mixture.example
+
+# AT the moment, we only need x and y
+df = data.frame(x1 = me$x[,1], 
+                x2 = me$x[,2], 
+                y = me$y)
+
+# Print a table of sample of 4 values from a sample size of 200 of x1, x2 and y
+knitr::kable(df[sample(200, 4),], row.names = FALSE)
+
+# Create a regression task
+# data should contain the data and the target variable
+# Specify the target variable
+tsk = makeRegrTask(data = df, target = "y")
+
+# Syntax of makeLearner tells you what type of regression you are doing
+# You are curating the data for linear regression model
+lrn.lm = makeLearner("regr.lm")
+
+# Training the data
+# The first input to the function is the curated data and the second 
+# input is the regression task that was created above
+mod.lm = train(lrn.lm, tsk)
+
+# Now we want to extract the coefficients and then print in table format
+beta = coefficients(getLearnerModel(mod.lm))
+knitr::kable(t(beta))
+```
+We create a grid of points covering all realizations of $x_1$ and $x_2$ in the feature space. For each point we make a model prediction. We set the threshold for the classification to .5.
+
+```{r grid}
+knitr::kable(summary(df[, c("x1", "x2")])[c(1,6), ], row.names = FALSE)
+grid = expand.grid(x1 = seq(-2.6, 4.2, .1), x2 = seq(-2.0, 2.9, .05))
+y.hat = getPredictionResponse(predict(mod.lm, newdata = grid))
+grid["y.lm"] = factor(as.numeric(y.hat > .5))
+```
+
+The function for the decision boundary is determined by the estimated coefficients of the model.
+
+```{r linear decision boundary}
+db = function(x1, coef = beta) {
+  (coef[3])^-1 * (0.5 - coef[1] - coef[2] * x1)
+}
+```
+
+## Figure 2-1 Classification using linear regression
+
+```{r figure-02-01-lm, fig.asp=1}
+ggplot() + 
+  geom_point(aes(x = grid$x1, y = grid$x2, col = grid$y.lm), shape = 20, size = .05, alpha = .5, show.legend = FALSE) +
+  geom_line(aes(x = grid$x1, y = db(grid$x1))) +
+  geom_point(aes(x = df$x1, y = df$x2, col = factor(df$y)), shape = "o", size = 4, stroke = 2, show.legend = FALSE) +
+  scale_colour_manual(values = c("deepskyblue", "orange")) +
+  theme_void()
+```
+
+# Nearest-Neighbors Method
+
+We start with a 15-nearest-neighbor model.
+
+```{r}
+
+# Create a regression task
+# data should contain the data and the target variable
+# Specify the target variable
+tsk2 = makeClassifTask(data = data.frame(df[,1:2], y = factor(df$y)), target = "y")
+
+# Syntax of makeLearner tells you what type of regression you are doing
+# You are curating the data for linear regression model
+lrn.knn15 = makeLearner("classif.knn", k = 15)
+
+# Training the data
+# The first input to the function is the curated data and the second 
+# input is the regression task that was created above
+mod.knn15 = train(lrn.knn15, tsk2)
+```
+
+```{r plot-bivariate-binary-classification}
+
+# Plot the binary classification model that you created in the last step
+Plot2DBinaryClassification = function(task, model, grid.res = 100) {
+  data = getTaskData(task, target.extra = TRUE)
+  x1 = data$data[, 1]
+  x2 = data$data[, 2]
+  grid = expand.grid(x1 = seq(min(x1), max(x1), length.out = grid.res), 
+    x2 = seq(min(x2), max(x2), length.out = grid.res))
+  y.hat = getPredictionResponse(predict(model, newdata = grid))
+  ggplot() + 
+    geom_point(aes(x = grid$x1, y = grid$x2, col = y.hat), shape = 20, size = .05, alpha = .5,
+      show.legend = FALSE) +
+    geom_contour(aes(grid$x1, grid$x2, z = as.numeric(y.hat)), col = "black", bins = 1) +
+    geom_point(aes(x = x1, y = x2, col = data$target), shape = "o", size = 4, stroke = 2,
+      show.legend = FALSE) +
+    scale_colour_manual(values = c("deepskyblue", "orange")) +
+    xlab(names(data$data)[1]) + ylab(names(data$data)[2])
+}
+```
+
+## Figure 2-2 Classification using 15-nearest-neighbors
+
+```{r figure-02-02-knn15, fig.asp=1}
+Plot2DBinaryClassification(task = tsk2, model = mod.knn15) + theme_void()
+```
+
+Now we train a 1-nearest-neighbor model.
+
+```{r}
+
+# 
+# Create a regression task
+# data should contain the data and the target variable
+# Specify the target variable
+tsk2_1 = makeClassifTask(data = data.frame(df[,1:2], y = factor(df$y)), target = "y")
+
+# Syntax of makeLearner tells you what type of regression you are doing
+# You are curating the data for linear regression model
+lrn.knn15 = makeLearner("classif.knn", k = 1)
+
+# Training the data
+# The first input to the function is the curated data and the second 
+# input is the regression task that was created above
+mod.knn15 = train(lrn.knn15, tsk2_1)
+```
+
+
+```{r figure-02-02-knn15, fig.asp=1}
+Plot2DBinaryClassification(task = tsk2, model = mod.knn15) + theme_void()
+```
